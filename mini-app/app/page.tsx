@@ -1,6 +1,7 @@
 import { description, title } from "@/lib/metadata";
 import { generateMetadata } from "@/lib/farcaster-embed";
-import CherryGame from "@/components/cherry-game";
+import dynamic from "next/dynamic";
+const CherryGame = dynamic(() => import("@/components/cherry-game"), { ssr: false });
 
 export { generateMetadata };
 
