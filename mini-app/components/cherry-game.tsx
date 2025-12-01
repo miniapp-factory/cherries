@@ -1,48 +1,91 @@
 "use client";
- // Only cherries are caught
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-export default function CherryGame() {
-  const [caught, setCaught] = useState<number[]>([]);
-  const cherries = Array.from({ length: 9 }, (_, i) => i);
+const CHERRY_SIZE = 40;
+const BASKET_WIDTH = 80;
+const BASKET_HEIGHT = 20;
+const GRAVITY = 2;
+const SPEED = 5;
 
-  const handleCatch = (id: number) => {
-    if (!caught.includes(id)) {
-      setCaught((prev) => [...prev, id]);
+export default function CherryGame() {
+  const [cherryY, setCherryY] = useState(-CHERRY_SIZE);
+  const [cherryX, setCherryX] = useState(
+    Math.random() * (window.innerWidth - CHERRY_SIZE)
+  );
+  const [basketX, setBasketX] = useState(
+    window.innerWidth / 2 - BASKET_WIDTH / 2
+  );
+  const [caught, setCaught] = useState(0);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        setBasketX((prev) => Math.max(prev - SPEED, 0));
+      } else if (e.key === "ArrowRight") {
+        setBasketX((prev) =>
+          Math.min(prev + SPEED, window.innerWidth - BASKET_WIDTH)
+        );
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setCherryY((prev) => prev + GRAVITY);
+    }, 30);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (cherryY > window.innerHeight) {
+      setCherryY(-CHERRY_SIZE);
+      setCherryX(Math.random() * (window.innerWidth - CHERRY_SIZE));
+    } else if (
+      cherryY + CHERRY_SIZE >= window.innerHeight - BASKET_HEIGHT &&
+      cherryX + CHERRY_SIZE >= basketX &&
+      cherryX <= basketX + BASKET_WIDTH
+    ) {
+      setCaught((prev) => prev + 1);
+      setCherryY(-CHERRY_SIZE);
+      setCherryX(Math.random() * (window.innerWidth - CHERRY_SIZE));
     }
-  };
+  }, [cherryY, cherryX, basketX]);
 
   return (
-    <div className="mt-6 flex flex-col items-center gap-4">
-      <div className="grid grid-cols-3 gap-4">
-        {cherries.map((id) => (
-          <Button
-            key={id}
-            variant="outline"
-            size="lg"
-            className={cn(
-              "w-20 h-20 rounded-full flex items-center justify-center",
-              caught.includes(id) && "bg-red-500 text-white",
-              !caught.includes(id) && "bg-white text-red-500"
-            )}
-            onClick={() => handleCatch(id)}
-          >
-            <span
-              className={cn(
-                "text-2xl",
-                caught.includes(id) && "animate-spin"
-              )}
-            >
-              🍒
-            </span>
-          </Button>
-        ))}
+    <div className="relative w-full h-screen overflow-hidden bg-gradient-to-b from-pink-200 to-pink-400">
+      <div
+        className="absolute"
+        style={{
+          left: `${cherryX}px`,
+          top: `${cherryY}px`,
+          width: `${CHERRY_SIZE}px`,
+          height: `${CHERRY_SIZE}px`,
+          fontSize: `${CHERRY_SIZE}px`,
+          textAlign: "center",
+        }}
+      >
+        🍒
       </div>
-      <div className="text-lg">
-        Caught: {caught.length} / {cherries.length}
+      <div
+        className="absolute"
+        style={{
+          left: `${basketX}px`,
+          top: `${window.innerHeight - BASKET_HEIGHT - 10}px`,
+          width: `${BASKET_WIDTH}px`,
+          height: `${BASKET_HEIGHT}px`,
+          backgroundColor: "#8B4513",
+          borderRadius: "10px",
+        }}
+      />
+      <div className="absolute top-4 left-4 text-lg">
+        Caught: {caught}
       </div>
     </div>
   );
